@@ -1,10 +1,13 @@
 [package]
-name = "MessageBoard"
+name = "Flipzy"
 version = "1.0.0"
 authors = []
 
 [addresses]
-message_board_addr = "_"
+coinflip_addr = "0xbb104ac69cf9db8762e57faefcfd529cd3321b3eef2fa5d10850f24b69a278dd"
+
+[dev-addresses]
+coinflip_addr = "0xCAFE"
 
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework.git", rev = "mainnet", subdir = "aptos-framework" }
