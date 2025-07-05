@@ -88,7 +88,7 @@ export function Navbar() {
               type: {_like: "%::coinflip::FlipzyyyFlipEvent"}
             }
             order_by: {transaction_version: desc}
-            limit: 10
+            limit: 50
           ) {
             type
             data
