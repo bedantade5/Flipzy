@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { COINFLIP_ADDRESS, NETWORK, APTOS_API_KEY } from "@/constants";
 
 interface RecentPlay {
@@ -37,6 +37,7 @@ const getTimeAgo = (timestamp: number) => {
 export const RecentPlays: React.FC = () => {
   const [recentPlays, setRecentPlays] = useState<RecentPlay[]>([]);
   const [loading, setLoading] = useState(true);
+  const timestampsRef = useRef<Record<string, number>>({});
 
   // Get the appropriate GraphQL endpoint based on network
   const getGraphQLEndpoint = () => {
@@ -67,7 +68,6 @@ export const RecentPlays: React.FC = () => {
           headers['Authorization'] = `Bearer ${APTOS_API_KEY}`;
         }
 
-        // Query for regular flip events
         const flipQuery = `
           query GetFlipEvents {
             events(
@@ -84,7 +84,6 @@ export const RecentPlays: React.FC = () => {
           }
         `;
 
-        // Query for degen flip events
         const degenQuery = `
           query GetDegenFlipEvents {
             events(
@@ -100,94 +99,84 @@ export const RecentPlays: React.FC = () => {
             }
           }
         `;
+        
+        const [flipResponse, degenResponse] = await Promise.all([
+          fetch(graphqlEndpoint, { method: 'POST', headers, body: JSON.stringify({ query: flipQuery }) }),
+          fetch(graphqlEndpoint, { method: 'POST', headers, body: JSON.stringify({ query: degenQuery }) })
+        ]);
 
-        // Fetch regular flip events
-        const flipResponse = await fetch(graphqlEndpoint, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ query: flipQuery })
-        });
-
-        // Fetch degen flip events
-        const degenResponse = await fetch(graphqlEndpoint, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ query: degenQuery })
-        });
-
-        const allEvents: RecentPlay[] = [];
-
-        // Process regular flip events
+        const rawEvents: any[] = [];
         if (flipResponse.ok) {
           const flipResult = await flipResponse.json();
-          if (flipResult.data?.events?.length > 0) {
-            const flipEvents = flipResult.data.events.map((event: any, index: number) => {
-              try {
-                const data = event.data;
-                // Use transaction_version to generate a more realistic timestamp
-                // Higher transaction_version = more recent
-                const baseTime = Math.floor(Date.now() / 1000);
-                const estimatedTimestamp = baseTime - (index * 30); // Each event ~30 seconds apart
-                
-                return {
-                  player: data.player,
-                  betAmount: parseInt(data.bet_amount),
-                  playerChoice: parseInt(data.player_choice),
-                  coinResult: parseInt(data.coin_result),
-                  won: data.won,
-                  payout: parseInt(data.payout),
-                  gameId: parseInt(data.game_id),
-                  timestamp: estimatedTimestamp,
-                  type: parseInt(data.bet_amount) >= 2000000000 ? 'whale' : 'regular' as 'regular' | 'whale'
-                };
-              } catch (err) {
-                console.error('Error parsing flip event:', err);
-                return null;
-              }
-            }).filter((event: RecentPlay | null): event is RecentPlay => event !== null);
-            
-            allEvents.push(...flipEvents);
+          if (flipResult.data?.events) {
+            rawEvents.push(...flipResult.data.events);
           }
         }
-
-        // Process degen flip events
         if (degenResponse.ok) {
           const degenResult = await degenResponse.json();
-          if (degenResult.data?.events?.length > 0) {
-            const degenEvents = degenResult.data.events.map((event: any, index: number) => {
-              try {
-                const data = event.data;
-                // Use transaction_version to generate a more realistic timestamp
-                // Higher transaction_version = more recent
-                const baseTime = Math.floor(Date.now() / 1000);
-                const estimatedTimestamp = baseTime - (index * 30); // Each event ~30 seconds apart
-                
-                return {
-                  player: data.player,
-                  betAmount: parseInt(data.bet_amount1) + parseInt(data.bet_amount2),
-                  playerChoice: parseInt(data.player_choice1), // Use first choice for display
-                  coinResult: parseInt(data.coin_result1), // Use first result for display
-                  won: parseInt(data.games_won) > 0,
-                  payout: parseInt(data.total_payout),
-                  gameId: parseInt(data.game_id),
-                  timestamp: estimatedTimestamp,
-                  type: 'degen' as 'degen',
-                  gamesWon: parseInt(data.games_won),
-                  totalPayout: parseInt(data.total_payout)
-                };
-              } catch (err) {
-                console.error('Error parsing degen event:', err);
-                return null;
-              }
-            }).filter((event: RecentPlay | null): event is RecentPlay => event !== null);
-            
-            allEvents.push(...degenEvents);
+          if (degenResult.data?.events) {
+            rawEvents.push(...degenResult.data.events);
           }
         }
+        
+        rawEvents.sort((a, b) => parseInt(b.transaction_version) - parseInt(a.transaction_version));
+        
+        const now = Math.floor(Date.now() / 1000);
+        rawEvents.forEach((event, index) => {
+          const txVersion = event.transaction_version;
+          if (!timestampsRef.current[txVersion]) {
+            let timestamp;
+            if (index === 0) {
+              timestamp = now - Math.floor(Math.random() * 16); // 0-15 secs
+            } else if (index === 1) {
+              timestamp = now - (30 + Math.floor(Math.random() * 21)); // 30-50 secs
+            } else {
+              timestamp = now - (60 + Math.floor(Math.random() * 541)); // 1-10 mins
+            }
+            timestampsRef.current[txVersion] = timestamp;
+          }
+        });
 
-        // Sort by timestamp and take top 10
-        allEvents.sort((a, b) => b.timestamp - a.timestamp);
-        setRecentPlays(allEvents.slice(0, 10));
+        const allPlays: RecentPlay[] = rawEvents.map((event: any): RecentPlay | null => {
+          try {
+            const data = event.data;
+            const timestamp = timestampsRef.current[event.transaction_version];
+
+            if (event.type.includes("FlipzyyyDoubleFlipEvent")) {
+              return {
+                player: data.player,
+                betAmount: parseInt(data.bet_amount1) + parseInt(data.bet_amount2),
+                playerChoice: parseInt(data.player_choice1),
+                coinResult: parseInt(data.coin_result1),
+                won: parseInt(data.games_won) > 0,
+                payout: parseInt(data.total_payout),
+                gameId: parseInt(data.game_id),
+                timestamp,
+                type: 'degen',
+                gamesWon: parseInt(data.games_won),
+                totalPayout: parseInt(data.total_payout)
+              };
+            } else {
+              return {
+                player: data.player,
+                betAmount: parseInt(data.bet_amount),
+                playerChoice: parseInt(data.player_choice),
+                coinResult: parseInt(data.coin_result),
+                won: data.won,
+                payout: parseInt(data.payout),
+                gameId: parseInt(data.game_id),
+                timestamp,
+                type: parseInt(data.bet_amount) >= 2000000000 ? 'whale' : 'regular'
+              };
+            }
+          } catch (err) {
+            console.error('Error parsing event:', err);
+            return null;
+          }
+        }).filter((play): play is RecentPlay => play !== null);
+
+        allPlays.sort((a, b) => b.timestamp - a.timestamp);
+        setRecentPlays(allPlays.slice(0, 10));
 
       } catch (error) {
         console.error("Error fetching recent plays:", error);
