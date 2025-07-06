@@ -6,6 +6,18 @@ A pixelated, retro-style coin flip gambling dApp built on the Aptos blockchain. 
 
 **Play Now:** [flipzy.netlify.app](https://flipzy.netlify.app)
 
+## 📃 Contract Address
+
+## 0xbb104ac69cf9db8762e57faefcfd529cd3321b3eef2fa5d10850f24b69a278dd
+ 
+## 🤝 Contact Info
+
+**Ayushman Koley** [ayushmankoley1@gmail.com]
+
+**Bedanta De** [9123930028 | bedanta.de5@gmail.com]
+
+**Mayank Soni** [9142132522 | imayank.tech@gmail.com]
+
 ## 🚀 Features
 
 ### Game Modes
@@ -42,7 +54,7 @@ A pixelated, retro-style coin flip gambling dApp built on the Aptos blockchain. 
 
 ### Clone the Repository
 ```bash
-git clone https://github.com/your-username/flipzy.git
+git clone https://github.com/ayushmankoley/flipzy.git
 cd flipzy
 ```
 
@@ -51,12 +63,20 @@ cd flipzy
 npm install
 ```
 
+### Initialize Aptos wallet
+```bash
+aptos init
+```
+
 ### Environment Setup
 Create a `.env` file in the root directory:
 ```env
-VITE_APTOS_NETWORK=testnet
-VITE_APTOS_API_KEY=your_aptos_api_key_here
-VITE_MODULE_ADDRESS=your_contract_address_here
+PROJECT_NAME=flipzy
+VITE_APP_NETWORK=
+VITE_APTOS_API_KEY="key-here"
+VITE_MODULE_ADDRESS=replace_contract_address
+VITE_MODULE_PUBLISHER_ACCOUNT_ADDRESS=replace_contract_address
+VITE_MODULE_PUBLISHER_ACCOUNT_PRIVATE_KEY=replace_privatekey
 ```
 
 ### Run the Development Server
@@ -70,23 +90,18 @@ The application will be available at `http://localhost:5173`
 
 ### Compile the Contract
 ```bash
-npm run move:compile
-```
-
-### Test the Contract
-```bash
-npm run move:test
+aptos move compile
 ```
 
 ### Deploy to Testnet
 ```bash
-npm run move:publish
+aptos move publish
 ```
 
-### Deploy to Mainnet
-Update your `.env` to use mainnet, then:
+### Deploy to Mainnet/Testnet
+Update your `.env` to use mainnet/Testnet, then:
 ```bash
-npm run move:publish
+aptos move publish
 ```
 
 ## 🎯 How to Play
