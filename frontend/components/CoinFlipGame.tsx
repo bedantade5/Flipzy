@@ -691,7 +691,6 @@ export function CoinFlipGame() {
                   }
 
                   const modeText = isWhaleMode ? 'whale mode' : isDegenMode ? 'degen mode' : 'normal mode';
-                  const resultText = gameResult.won ? 'won' : 'lost';
                   const amountText = Math.abs(profitLoss).toFixed(2);
                   
                   let tweetText = '';
