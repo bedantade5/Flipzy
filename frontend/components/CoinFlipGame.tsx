@@ -19,6 +19,27 @@ type GameResult = {
   totalPayout?: number;
 };
 
+// Audio utility functions
+const playWinSound = () => {
+  try {
+    const audio = new Audio('/icons/won.mp3');
+    audio.volume = 0.5; // Set volume to 50%
+    audio.play().catch(e => console.log('Audio play failed:', e));
+  } catch (error) {
+    console.log('Audio creation failed:', error);
+  }
+};
+
+const playLoseSound = () => {
+  try {
+    const audio = new Audio('/icons/lost.mp3');
+    audio.volume = 0.5; // Set volume to 50%
+    audio.play().catch(e => console.log('Audio play failed:', e));
+  } catch (error) {
+    console.log('Audio creation failed:', error);
+  }
+};
+
 export function CoinFlipGame() {
   const { signAndSubmitTransaction, account } = useWallet();
   const { toast } = useToast();
@@ -95,6 +116,13 @@ export function CoinFlipGame() {
         });
         setGamePhase('result');
         setIsFlipping(false);
+        
+        // Play audio for free mode (non-degen)
+        if (userWon) {
+          playWinSound();
+        } else {
+          playLoseSound();
+        }
       }, 2000); // 2 second delay for the spinning animation
       return;
     }
@@ -208,6 +236,8 @@ export function CoinFlipGame() {
                 gamesWon: games_won,
                 totalPayout: payout_in_apt
               });
+              
+              // No audio for degen mode
             } else {
               const { won, payout } = flipEvent.data;
               const payout_in_apt = Number(payout) / 10**8;
@@ -216,6 +246,13 @@ export function CoinFlipGame() {
                 won: won,
                 payout: payout_in_apt
               });
+              
+              // Play audio for non-degen modes (normal and whale)
+              if (won) {
+                playWinSound();
+              } else {
+                playLoseSound();
+              }
             }
             
             setGamePhase('result');
