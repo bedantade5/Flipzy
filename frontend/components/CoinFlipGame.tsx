@@ -485,6 +485,96 @@ export function CoinFlipGame() {
       isDegenMode ? `${gameResult.totalPayout?.toFixed(2) || '0.00'} APT` :
       `${gameResult.payout?.toFixed(2) || '0.00'} APT`;
 
+    // Generate PNL function
+    const generatePNL = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Set canvas size to match the PNL image dimensions
+      canvas.width = 800;
+      canvas.height = 600;
+
+      // Determine which background image to use
+      let bgImageSrc = '';
+      if (isWhaleMode) {
+        bgImageSrc = gameResult.won ? '/icons/winpnlwhale.png' : '/icons/losepnlwhale.png';
+      } else {
+        bgImageSrc = gameResult.won ? '/icons/winpnlnormal.png' : '/icons/losepnlnormal.png';
+      }
+
+      const bgImage = new Image();
+      bgImage.crossOrigin = 'anonymous';
+      bgImage.onload = () => {
+        // Draw background image at original size
+        ctx.drawImage(bgImage, 0, 0);
+        
+        // Update canvas size to match the loaded image
+        canvas.width = bgImage.width;
+        canvas.height = bgImage.height;
+        
+        // Redraw the image after resizing canvas
+        ctx.drawImage(bgImage, 0, 0);
+
+        // Set up text styling - pixelated font, bold, center-aligned
+        ctx.font = 'bold 50px "Press Start 2P", "Courier New", monospace';
+        ctx.fillStyle = 'black';
+        ctx.textAlign = 'center';
+
+        // Determine game mode text
+        let modeText = '';
+        if (isWhaleMode) {
+          modeText = 'WHALE MODE';
+        } else if (isDegenMode) {
+          modeText = 'DEGEN MODE';
+        } else {
+          modeText = 'NORMAL MODE';
+        }
+
+        // Calculate profit/loss amount
+        let profitLoss = 0;
+        if (isFreeMode) {
+          profitLoss = 0;
+        } else if (isDegenMode) {
+          const totalBet = (selectedBetIndex !== null && selectedBetIndex2 !== null) ? 
+            (isWhaleMode ? WHALE_BET_AMOUNTS : BET_AMOUNTS)[selectedBetIndex] + 
+            (isWhaleMode ? WHALE_BET_AMOUNTS : BET_AMOUNTS)[selectedBetIndex2] : 0;
+          profitLoss = (gameResult.totalPayout || 0) - totalBet;
+        } else {
+          const betAmount = selectedBetIndex !== null ? 
+            (isWhaleMode ? WHALE_BET_AMOUNTS : BET_AMOUNTS)[selectedBetIndex] : 0;
+          profitLoss = (gameResult.payout || 0) - betAmount;
+        }
+
+        const profitLossText = `${profitLoss >= 0 ? '+' : ''}${profitLoss.toFixed(2)} APT`;
+
+        // Position text on the right side of the image (center-aligned)
+        const textX = canvas.width * 0.73; // Right side
+        const textY = canvas.height * 0.4; // Vertical center area
+
+        // Draw mode text
+        ctx.fillText(modeText, textX, textY);
+
+        // Draw profit/loss with appropriate color and larger font
+        ctx.fillStyle = profitLoss >= 0 ? '#0c913d' : '#ef4444';
+        ctx.font = 'bold 54px "Press Start 2P", "Courier New", monospace';
+        ctx.fillText(profitLossText, textX, textY + 70);
+
+        // Draw website URL with larger font
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 46px "Press Start 2P", "Courier New", monospace';
+        ctx.fillText('flipzy.netlify.app', textX, textY + 140);
+
+        // Download the image
+        const link = document.createElement('a');
+        link.download = `flipzy-pnl-${Date.now()}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      };
+
+      bgImage.src = bgImageSrc;
+    };
+
     return (
       <div className="text-center">
         {/* Result coin */}
@@ -513,7 +603,7 @@ export function CoinFlipGame() {
           marginBottom: '24px'
         }}>
           <h2 style={{
-            fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '16px' : '20px',
+            fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '20px' : '28px',
             fontWeight: 'bold',
             color: 'black',
             fontFamily: '"Press Start 2P", "Courier New", monospace',
@@ -536,14 +626,188 @@ export function CoinFlipGame() {
           )}
           
           <p style={{
-            fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '12px' : '14px',
+            fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '16px' : '20px',
             color: gameResult.won ? '#22c55e' : '#ef4444',
             fontFamily: '"Press Start 2P", "Courier New", monospace',
             fontWeight: 'bold',
-            marginBottom: '24px'
+            marginBottom: '16px'
           }}>
             {payoutText}
           </p>
+
+          {/* Generate PNL button */}
+          {!isFreeMode && (
+            <button
+              onClick={generatePNL}
+              style={{
+                background: '#9333EA',
+                color: 'white',
+                border: '2px solid black',
+                padding: typeof window !== 'undefined' && window.innerWidth < 768 ? '8px 16px' : '10px 20px',
+                fontSize: typeof window !== 'undefined' && window.innerWidth < 768 ? '10px' : '12px',
+                fontWeight: 'bold',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                transform: 'translateY(0)',
+                fontFamily: '"Press Start 2P", "Courier New", monospace',
+                marginBottom: '16px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              GENERATE PNL
+            </button>
+          )}
+
+          {/* Twitter and Copy buttons */}
+          {!isFreeMode && (
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'center',
+              marginBottom: '16px'
+            }}>
+              {/* Twitter Share Button */}
+              <button
+                onClick={() => {
+                  // Calculate profit/loss for tweet
+                  let profitLoss = 0;
+                  if (isDegenMode) {
+                    const totalBet = (selectedBetIndex !== null && selectedBetIndex2 !== null) ? 
+                      (isWhaleMode ? WHALE_BET_AMOUNTS : BET_AMOUNTS)[selectedBetIndex] + 
+                      (isWhaleMode ? WHALE_BET_AMOUNTS : BET_AMOUNTS)[selectedBetIndex2] : 0;
+                    profitLoss = (gameResult.totalPayout || 0) - totalBet;
+                  } else {
+                    const betAmount = selectedBetIndex !== null ? 
+                      (isWhaleMode ? WHALE_BET_AMOUNTS : BET_AMOUNTS)[selectedBetIndex] : 0;
+                    profitLoss = (gameResult.payout || 0) - betAmount;
+                  }
+
+                  const modeText = isWhaleMode ? 'whale mode' : isDegenMode ? 'degen mode' : 'normal mode';
+                  const resultText = gameResult.won ? 'won' : 'lost';
+                  const amountText = Math.abs(profitLoss).toFixed(2);
+                  
+                  let tweetText = '';
+                  if (gameResult.won) {
+                    tweetText = `I just won ${amountText} APT by flipping a coin on ${modeText} at flipzy.netlify.app! 🪙💰`;
+                  } else {
+                    tweetText = `I just lost ${amountText} APT by flipping a coin on ${modeText} at flipzy.netlify.app! 🪙😅`;
+                  }
+                  
+                  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+                  window.open(twitterUrl, '_blank');
+                }}
+                style={{
+                  background: '#000000',
+                  color: 'white',
+                  border: '2px solid black',
+                  padding: '8px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  transform: 'translateY(0)',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+                title="Share on X"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+              </button>
+
+              {/* Copy Button */}
+              <button
+                onClick={() => {
+                  // Calculate profit/loss for copy text
+                  let profitLoss = 0;
+                  if (isDegenMode) {
+                    const totalBet = (selectedBetIndex !== null && selectedBetIndex2 !== null) ? 
+                      (isWhaleMode ? WHALE_BET_AMOUNTS : BET_AMOUNTS)[selectedBetIndex] + 
+                      (isWhaleMode ? WHALE_BET_AMOUNTS : BET_AMOUNTS)[selectedBetIndex2] : 0;
+                    profitLoss = (gameResult.totalPayout || 0) - totalBet;
+                  } else {
+                    const betAmount = selectedBetIndex !== null ? 
+                      (isWhaleMode ? WHALE_BET_AMOUNTS : BET_AMOUNTS)[selectedBetIndex] : 0;
+                    profitLoss = (gameResult.payout || 0) - betAmount;
+                  }
+
+                  const modeText = isWhaleMode ? 'whale mode' : isDegenMode ? 'degen mode' : 'normal mode';
+                  const amountText = Math.abs(profitLoss).toFixed(2);
+                  
+                  let copyText = '';
+                  if (gameResult.won) {
+                    copyText = `I just won ${amountText} APT by flipping a coin on ${modeText} at flipzy.netlify.app!`;
+                  } else {
+                    copyText = `I just lost ${amountText} APT by flipping a coin on ${modeText} at flipzy.netlify.app!`;
+                  }
+                  
+                  navigator.clipboard.writeText(copyText).then(() => {
+                    toast({
+                      title: "Copied!",
+                      description: "Result copied to clipboard",
+                    });
+                  }).catch(() => {
+                    toast({
+                      title: "Error",
+                      description: "Failed to copy to clipboard",
+                      variant: "destructive",
+                    });
+                  });
+                }}
+                style={{
+                  background: '#6B7280',
+                  color: 'white',
+                  border: '2px solid black',
+                  padding: '8px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  transform: 'translateY(0)',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+                title="Copy result"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                </svg>
+              </button>
+            </div>
+          )}
 
           <div style={{
             borderTop: '2px solid #000',
