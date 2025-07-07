@@ -8,6 +8,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Navbar } from "@/components/Navbar";
+import { WalletSelector } from "@/components/WalletSelector";
 
 const aptosConfig = new AptosConfig({ network: NETWORK });
 const aptos = new Aptos(aptosConfig);
@@ -187,86 +189,90 @@ export default function HousePage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <Card className="max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>House Management</CardTitle>
-          <CardDescription>
-            {isOwner 
-              ? "Manage house funds" 
-              : "Only the house owner can manage funds"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">House Balance</h3>
-              <p className="text-3xl font-bold">{houseBalance.toFixed(2)} APT</p>
-            </div>
+    <>
+      <Navbar />
+      <div className="container mx-auto px-4 py-8 pt-24">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>House Management</CardTitle>
+            <CardDescription>
+              {isOwner 
+                ? "Manage house funds" 
+                : "Only the house owner can manage funds"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">House Balance</h3>
+                <p className="text-3xl font-bold">{houseBalance.toFixed(2)} APT</p>
+              </div>
 
-            {account && (
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="depositAmount" className="block text-sm font-medium mb-2">
-                    Deposit Amount (APT)
-                  </label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="depositAmount"
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={depositAmount}
-                      onChange={(e) => setDepositAmount(e.target.value)}
-                      placeholder="Enter amount"
-                      className="flex-1"
-                    />
-                    <Button 
-                      onClick={handleDeposit}
-                      disabled={isDepositing || !depositAmount}
-                    >
-                      {isDepositing ? "Processing..." : "Deposit"}
-                    </Button>
-                  </div>
-                </div>
-
-                {isOwner && (
+              {account ? (
+                <div className="space-y-4">
                   <div>
-                    <label htmlFor="withdrawAmount" className="block text-sm font-medium mb-2">
-                      Withdraw Amount (APT)
+                    <label htmlFor="depositAmount" className="block text-sm font-medium mb-2">
+                      Deposit Amount (APT)
                     </label>
                     <div className="flex gap-2">
                       <Input
-                        id="withdrawAmount"
+                        id="depositAmount"
                         type="number"
                         step="0.1"
                         min="0"
-                        max={houseBalance}
-                        value={withdrawAmount}
-                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                        value={depositAmount}
+                        onChange={(e) => setDepositAmount(e.target.value)}
                         placeholder="Enter amount"
                         className="flex-1"
                       />
                       <Button 
-                        onClick={handleWithdraw}
-                        disabled={isLoading || !withdrawAmount}
+                        onClick={handleDeposit}
+                        disabled={isDepositing || !depositAmount}
                       >
-                        {isLoading ? "Processing..." : "Withdraw"}
+                        {isDepositing ? "Processing..." : "Deposit"}
                       </Button>
                     </div>
                   </div>
-                )}
-              </div>
-            )}
 
-            {!account && (
-              <p className="text-sm text-gray-500">
-                Please connect your wallet to view house management options.
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                  {isOwner && (
+                    <div>
+                      <label htmlFor="withdrawAmount" className="block text-sm font-medium mb-2">
+                        Withdraw Amount (APT)
+                      </label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="withdrawAmount"
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max={houseBalance}
+                          value={withdrawAmount}
+                          onChange={(e) => setWithdrawAmount(e.target.value)}
+                          placeholder="Enter amount"
+                          className="flex-1"
+                        />
+                        <Button 
+                          onClick={handleWithdraw}
+                          disabled={isLoading || !withdrawAmount}
+                        >
+                          {isLoading ? "Processing..." : "Withdraw"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-center">
+                  <p className="text-sm text-gray-500 mb-4">
+                    Please connect your wallet to view house management options.
+                  </p>
+                  <WalletSelector />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 } 
